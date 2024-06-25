@@ -1,1 +1,202 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <chrono>
+#include <random>
+#include <iomanip>
 
+using namespace std;
+vector<int> bubbleSort(const vector<int>& arr) {
+    vector<int> sortedArr = arr;
+    int n = sortedArr.size();
+    for (int i = 0; i < n - 1; ++i) {
+        for (int j = 0; j < n - 1 - i; ++j) {
+            if (sortedArr[j] > sortedArr[j + 1]) {
+                swap(sortedArr[j], sortedArr[j + 1]);
+            }
+        }
+    }
+    return sortedArr;
+}
+vector<int> insertionSort(const vector<int>& arr) {
+    vector<int> sortedArr = arr;
+    int n = sortedArr.size();
+    for (int i = 1; i < n; ++i) {
+        int key = sortedArr[i];
+        int j = i - 1;
+        while (j >= 0 && sortedArr[j] > key) {
+            sortedArr[j + 1] = sortedArr[j];
+            --j;
+        }
+        sortedArr[j + 1] = key;
+    }
+    return sortedArr;
+}
+vector<int> selectionSort(const vector<int>& arr) {
+    vector<int> sortedArr = arr;
+    int n = sortedArr.size();
+    for (int i = 0; i < n - 1; ++i) {
+        int min_idx = i;
+        for (int j = i + 1; j < n; ++j) {
+            if (sortedArr[j] < sortedArr[min_idx]) {
+                min_idx = j;
+            }
+        }
+        swap(sortedArr[min_idx], sortedArr[i]);
+    }
+    return sortedArr;
+}
+void merge(vector<int>& arr, const vector<int>& left, const vector<int>& right) {
+    int n1 = left.size();
+    int n2 = right.size();
+
+    int i = 0, j = 0, k = 0;
+    while (i < n1 && j < n2) {
+        if (left[i] <= right[j]) {
+            arr[k] = left[i];
+            ++i;
+        } else {
+            arr[k] = right[j];
+            ++j;
+        }
+        ++k;
+    }
+    while (i < n1) {
+        arr[k] = left[i];
+        ++i; ++k;
+    }
+    while (j < n2) {
+        arr[k] = right[j];
+        ++j; ++k;
+    }
+}
+vector<int> mergeSort(vector<int> arr) {
+    int n = arr.size();
+    if (n <= 1) return arr;
+
+    int mid = n / 2;
+    vector<int> left(arr.begin(), arr.begin() + mid);
+    vector<int> right(arr.begin() + mid, arr.end());
+
+    left = mergeSort(left);
+    right = mergeSort(right);
+
+    arr.clear();
+    arr.resize(n);
+    merge(arr, left, right);
+    return arr;
+}
+
+int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+
+    for (int j = low; j < high; ++j) {
+        if (arr[j] < pivot) {
+            ++i;
+            swap(arr[i], arr[j]);
+        }
+    }
+    swap(arr[i + 1], arr[high]);
+    return (i + 1);
+}
+
+vector<int> quickSort(vector<int> arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        arr = quickSort(arr, low, pi - 1);
+        arr = quickSort(arr, pi + 1, high);
+    }
+    return arr;
+}
+
+vector<int> generateData(int N, const string& condition) {
+    vector<int> data(N);
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(1, N * 2);
+
+    if (condition == "Acak") {
+        for (int i = 0; i < N; ++i) {
+            data[i] = dis(gen);
+        }
+    } else if (condition == "Terurut Terbalik") {
+        for (int i = 0; i < N; ++i) {
+            data[i] = N - i;
+        }
+    } else if (condition == "Terurut") {
+        for (int i = 0; i < N; ++i) {
+            data[i] = i;
+        }
+    }
+    return data;
+}
+
+template<typename Func>
+long long measureTime(Func sortFunc, vector<int>& arr) {
+    auto start = chrono::high_resolution_clock::now();
+    vector<int> sortedArr = sortFunc(arr);
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double, micro> duration = end - start;
+    return static_cast<long long>(duration.count());
+}
+
+void printHeader() {
+    cout << setw(15) << "Algoritma";
+    cout << setw(20) << "Time Complexity";
+    cout << setw(15) << "N = 10";
+    cout << setw(15) << "N = 100";
+    cout << setw(15) << "N = 500";
+    cout << setw(15) << "N = 1000";
+    cout << setw(15) << "N = 10000";
+    cout << endl;
+    cout << string(95, '-') << endl; // Menambahkan garis horizontal
+}
+
+void printRow(const string& algorithm, const string& complexity, const vector<long long>& times) {
+    cout << setw(15) << algorithm;
+    cout << setw(20) << complexity;
+    for (const auto& time : times) {
+        cout << setw(15) << time ;
+    }
+    cout << endl;
+}
+
+int main() {
+    vector<int> sizes = {10, 100, 500, 1000, 10000};
+    vector<string> conditions = {"Acak", "Terurut Terbalik", "Terurut"};
+
+    for (const auto& condition : conditions) {
+        cout << "Kondisi: " << condition << endl;
+        printHeader();
+
+        vector<long long> bubbleTimes, insertionTimes, selectionTimes, mergeTimes, quickTimes;
+
+        for (const auto& size : sizes) {
+            vector<int> data = generateData(size, condition);
+            vector<int> dataCopy = data;
+
+            bubbleTimes.push_back(measureTime(bubbleSort, dataCopy));
+
+            dataCopy = data;
+            insertionTimes.push_back(measureTime(insertionSort, dataCopy));
+
+            dataCopy = data;
+            selectionTimes.push_back(measureTime(selectionSort, dataCopy));
+
+            dataCopy = data;
+            mergeTimes.push_back(measureTime(mergeSort, dataCopy));
+
+            dataCopy = data;
+            quickTimes.push_back(measureTime([&dataCopy](vector<int>& arr){ return quickSort(arr, 0, arr.size() - 1); }, dataCopy));
+        }
+        printRow("Bubble Sort", "O(n^2)", bubbleTimes);
+        printRow("Insertion Sort", "O(n^2)", insertionTimes);
+        printRow("Selection Sort", "O(n^2)", selectionTimes);
+        printRow("Merge Sort", "O(n log n)", mergeTimes);
+        printRow("Quick Sort", "O(n log n)", quickTimes);
+        cout << endl;
+    }
+
+    return 0;
+}
